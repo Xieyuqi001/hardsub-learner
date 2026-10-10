@@ -1,0 +1,18 @@
+# 构建产物。
+# 注意 `.build/` 没有前导斜杠，所以 `spike/.build/` 也会被一起挡住 ——
+# 那个目录单独就有 305MB，漏一条规则就会把整个仓库撑爆。
+.build/
+build/
+
+# macOS
+.DS_Store
+
+# SwiftPM / Xcode 的本地状态
+.swiftpm/
+Package.resolved
+
+# 本地覆盖：证书名、bundle id。
+# 这些是**每台机器各不相同**的东西，公开仓库里不该有，但你自己机器上要留着 ——
+# 换掉 bundle id 会让系统认为这是另一个 App，屏幕录制权限要重新授权。
+# 照 Scripts/local.env.example 建一份即可。
+Scripts/local.env

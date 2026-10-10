@@ -1,0 +1,363 @@
+/* 工作台样式。
+   全部走系统颜色（-apple-system + color-scheme），深色浅色自动跟着系统走，
+   不自己维护两套配色。 */
+
+:root {
+    color-scheme: light dark;
+    --sidebar-width: 240px;
+    --border: color-mix(in srgb, currentColor 14%, transparent);
+    --dim: color-mix(in srgb, currentColor 55%, transparent);
+    --accent: AccentColor;
+    --hover: color-mix(in srgb, currentColor 8%, transparent);
+    /* 收藏用的暖色。系统调色板里没有「星标」这个语义色（AccentColor 是蓝色，
+       拿来点星会和"选中"混在一起），所以这是全项目唯一一个自己定的颜色。
+       取中间调，浅色深色底上都读得清，不用维护两套。 */
+    --star: #e0a03c;
+}
+
+* { box-sizing: border-box; }
+
+/* 必须显式写这条。
+   `hidden` 属性靠 UA 样式表里的 `display: none` 生效，而下面 `#detail { display: flex }`
+   的优先级比 UA 样式高——不压回去的话，带 `hidden` 的区块照样会显示出来。
+   这个坑不报错、只是"凭空多出一块空 UI"，所以踩过一次就要在这里钉死。 */
+[hidden] { display: none !important; }
+
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    font: 14px/1.55 -apple-system, "SF Pro Text", "PingFang SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: Canvas;
+    color: CanvasText;
+    overflow: hidden;
+}
+
+/* ── 侧栏 ─────────────────────────────────────────────── */
+
+#sidebar {
+    width: var(--sidebar-width);
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: color-mix(in srgb, CanvasText 3%, Canvas);
+}
+
+#sidebar header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 14px 10px;
+}
+
+#sidebar h1 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--dim);
+}
+
+#session-list {
+    margin: 0;
+    padding: 0 8px 12px;
+    list-style: none;
+    overflow-y: auto;
+    flex: 1;
+}
+
+#session-list li {
+    padding: 9px 10px;
+    border-radius: 7px;
+    cursor: default;
+    user-select: none;
+}
+
+#session-list li:hover { background: var(--hover); }
+
+#session-list li.selected {
+    background: var(--accent);
+    color: white;
+}
+
+#session-list .name { font-weight: 500; }
+
+#session-list .sub {
+    font-size: 11.5px;
+    color: var(--dim);
+    margin-top: 2px;
+}
+
+#session-list li.selected .sub { color: color-mix(in srgb, white 78%, transparent); }
+
+/* ── 主区 ─────────────────────────────────────────────── */
+
+#main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+#placeholder {
+    margin: auto;
+    text-align: center;
+    color: var(--dim);
+}
+
+#detail { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+
+#detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 22px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.titles { min-width: 0; }
+
+#session-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+#session-meta {
+    margin: 3px 0 0;
+    font-size: 12px;
+    color: var(--dim);
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: none;
+}
+
+#filter {
+    width: 160px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: Canvas;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+}
+
+button {
+    padding: 5px 11px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: var(--accent);
+    color: white;
+    font: inherit;
+    font-size: 13px;
+    cursor: default;
+}
+
+button.ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: inherit;
+}
+
+button:hover { filter: brightness(1.08); }
+button:active { filter: brightness(.94); }
+
+/* ── 字幕列表 ─────────────────────────────────────────── */
+
+#entries {
+    margin: 0;
+    padding: 10px 22px 40px;
+    list-style: none;
+    overflow-y: auto;
+    flex: 1;
+}
+
+#entries li {
+    position: relative;
+    /* 右边留出星标的位置，免得长句的字跑到星底下 */
+    padding: 9px 36px 9px 46px;
+    border-radius: 8px;
+    cursor: default;
+}
+
+#entries li:hover { background: var(--hover); }
+
+/* 序号挂在左边留白里，不参与正文的视觉流 */
+#entries .n {
+    position: absolute;
+    left: 10px;
+    top: 11px;
+    width: 28px;
+    text-align: right;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--dim);
+}
+
+#entries .en {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+#entries .zh {
+    font-size: 13px;
+    color: var(--dim);
+    margin-top: 3px;
+}
+
+#entries .missing { font-style: italic; opacity: .5; }
+
+/* 单帧句：可能只是转场闪帧，标记出来但不丢弃 */
+#entries .flash::after {
+    content: "闪帧";
+    margin-left: 8px;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    vertical-align: 1px;
+}
+
+.hint { font-size: 12.5px; color: var(--dim); }
+
+/* ── 收藏 ─────────────────────────────────────────────── */
+
+/* 侧栏顶部那个常驻的收藏入口：拉一条分隔线，表明它不是"某一份文档" */
+#session-list li.pinned {
+    padding-bottom: 11px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    border-radius: 7px 7px 0 0;
+}
+
+#session-list li.empty { padding: 4px 10px 12px; }
+
+/* 句子右侧那颗星 */
+#entries .star {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 2px 6px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--dim);
+    font-size: 15px;
+    line-height: 1;
+    /* 平时藏起来——正文的视觉重心是字，不是控件 */
+    opacity: 0;
+    transition: opacity .12s;
+}
+
+/* 悬停这一行、已经收藏了、或者键盘聚焦到它 —— 这三种情况星都要看得见 */
+#entries li:hover .star,
+#entries .star.on,
+#entries .star:focus-visible { opacity: 1; }
+
+#entries .star.on { color: var(--star); }
+#entries .star:hover { background: var(--hover); filter: none; }
+
+/* 已收藏的行：序号标一下颜色，扫一眼就能看出哪几句收过 */
+#entries li.starred .n { color: var(--star); font-weight: 600; }
+
+/* 收藏视图里的会话分组标题。点它回到那一集。 */
+#entries li.group {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 16px 0 4px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    background: color-mix(in srgb, currentColor 5%, transparent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--dim);
+}
+
+#entries li.group:first-child { margin-top: 4px; }
+#entries li.group:hover { color: inherit; }
+
+#entries li.group .jump {
+    font-weight: 400;
+    opacity: 0;
+    transition: opacity .12s;
+}
+
+#entries li.group:hover .jump { opacity: .75; }
+
+#entries li.empty-hint {
+    padding: 30px 10px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--dim);
+}
+
+/* ── 就地改名 ─────────────────────────────────────────── */
+
+/* 替换掉 .name / h2 的那个输入框。必须 `font: inherit` —— 表单控件默认不继承
+   字体，不写这句会突然变成系统输入框的字体，和旁边的字对不上。 */
+.rename-input {
+    width: 100%;
+    font: inherit;
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: Canvas;
+    color: CanvasText;
+    outline: none;
+}
+
+#session-list .rename-input { font-weight: 500; }
+
+/* ── 右键菜单 ─────────────────────────────────────────── */
+
+#menu {
+    position: fixed;
+    z-index: 20;
+    min-width: 168px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: Canvas;
+    box-shadow: 0 8px 26px rgba(0,0,0,.20);
+}
+
+/* 盖掉全局 button 的强调色底 —— 菜单项是列表项，不是按钮 */
+#menu .menu-item {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 13px;
+    text-align: left;
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+#menu .menu-item:hover { background: var(--hover); filter: none; }
+
+/* ── 提示条 ───────────────────────────────────────────── */
+
+#toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%);
+    padding: 9px 16px;
+    border-radius: 9px;
+    background: color-mix(in srgb, CanvasText 88%, Canvas);
+    color: Canvas;
+    font-size: 13px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.22);
+    max-width: 70vw;
+}

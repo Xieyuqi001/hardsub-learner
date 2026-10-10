@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "name": "episode_ep01",
+    "source": "docs/requirements.md §9.5 —— 真实剧集，框选后连续采集 27 帧的原始 OCR 输出",
+    "note": "坐标是归一化的，左上角原点。中文行的 y 在两处明显漂移（谢谢夸奖 0.121→0.081、能得到你的赞美 0.116→0.042），是配对算法的关键考验。第 2 帧右上角混进一条 UI 噪音。第 9 帧是转场黑场。",
+    "captureRegion": { "x": 131, "y": 586, "width": 428, "height": 43 },
+    "frameInterval": 0.4
+  },
+
+  "frames": [
+    { "lines": [
+      { "text": "谢谢夸奖", "confidence": 0.30, "x": 0.387, "y": 0.121 },
+      { "text": "Oh, uh, yeah. Oh, thank you so much.", "confidence": 0.50, "x": 0.257, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "开启画9", "confidence": 0.50, "x": 0.871, "y": 0.047 },
+      { "text": "谢谢夸奖", "confidence": 1.00, "x": 0.417, "y": 0.081 },
+      { "text": "-oh, uh. yeah. Oh, thank ygu so much.", "confidence": 0.30, "x": 0.227, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "谢谢夸奖", "confidence": 1.00, "x": 0.418, "y": 0.108 },
+      { "text": "- oh, uh, yeah. Oh, thank you so much.", "confidence": 0.30, "x": 0.227, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "谢谢夸奖", "confidence": 1.00, "x": 0.418, "y": 0.111 },
+      { "text": "- Oh, uh, yeah. Oh, thank you so much.", "confidence": 0.30, "x": 0.227, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "谢谢夸奖", "confidence": 1.00, "x": 0.418, "y": 0.111 },
+      { "text": "- Oh, uh, yeah. Oh, thank you so much.", "confidence": 0.50, "x": 0.227, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "谢谢夸奖", "confidence": 1.00, "x": 0.409, "y": 0.111 },
+      { "text": "- Oh, uh, yeah. Oh, thank you so much.", "confidence": 0.50, "x": 0.224, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "你是个很棒的写手", "confidence": 1.00, "x": 0.339, "y": 0.116 },
+      { "text": "- You're an excellent joke writer.", "confidence": 0.50, "x": 0.273, "y": 0.605 }
+    ]},
+    { "lines": [
+      { "text": "你是个很棒的写手", "confidence": 1.00, "x": 0.339, "y": 0.116 },
+      { "text": "- You're an excellent joke writer.", "confidence": 0.50, "x": 0.273, "y": 0.605 }
+    ]},
+    { "lines": [] },
+    { "lines": [
+      { "text": "这种天分很罕见", "confidence": 1.00, "x": 0.357, "y": 0.116 },
+      { "text": "Believe me, those are hard to find.", "confidence": 0.50, "x": 0.269, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "这种天分很罕见", "confidence": 1.00, "x": 0.357, "y": 0.116 },
+      { "text": "Believe me, those are hard to find.", "confidence": 0.50, "x": 0.269, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "天啊….", "confidence": 0.30, "x": 0.442, "y": 0.140 },
+      { "text": "Oh my God.", "confidence": 0.50, "x": 0.416, "y": 0.576 }
+    ]},
+    { "lines": [
+      { "text": "天啊….", "confidence": 0.30, "x": 0.442, "y": 0.140 },
+      { "text": "Oh my God.", "confidence": 0.50, "x": 0.416, "y": 0.576 }
+    ]},
+    { "lines": [
+      { "text": "天啊…", "confidence": 0.30, "x": 0.442, "y": 0.140 },
+      { "text": "Oh my God.", "confidence": 0.50, "x": 0.416, "y": 0.576 }
+    ]},
+    { "lines": [
+      { "text": "能得到你的赞美 对我来说意义重大", "confidence": 1.00, "x": 0.192, "y": 0.116 },
+      { "text": "Uh, wow, that means so much coming from you.", "confidence": 0.50, "x": 0.173, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "能得到你的赞美 对我来说意义重大", "confidence": 0.50, "x": 0.192, "y": 0.081 },
+      { "text": "Uh, wow, that means so much coming from you.", "confidence": 0.50, "x": 0.173, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "能得到你的赞美 对我来说意义重大", "confidence": 0.50, "x": 0.187, "y": 0.081 },
+      { "text": "Uh, wow, that means so much coming from you.", "confidence": 0.50, "x": 0.173, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "能得到你的赞美 对我来说意义重大", "confidence": 0.50, "x": 0.192, "y": 0.042 },
+      { "text": "Uh, wow, that mneans so much coming from you.", "confidence": 0.50, "x": 0.173, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "能得到你的赞美 对我来说意义重大", "confidence": 0.50, "x": 0.192, "y": 0.042 },
+      { "text": "Uh, wow, that means so much coming from you.", "confidence": 0.50, "x": 0.173, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "谢谢你", "confidence": 1.00, "x": 0.433, "y": 0.081 },
+      { "text": "Oh, Thanks.", "confidence": 0.50, "x": 0.416, "y": 0.565 }
+    ]},
+    { "lines": [
+      { "text": "谢谢你", "confidence": 1.00, "x": 0.433, "y": 0.081 },
+      { "text": "Oh, Thanks.", "confidence": 0.50, "x": 0.415, "y": 0.562 }
+    ]},
+    { "lines": [
+      { "text": "谢谢你", "confidence": 1.00, "x": 0.433, "y": 0.081 },
+      { "text": "Oh, Thanks.", "confidence": 0.50, "x": 0.415, "y": 0.564 }
+    ]},
+    { "lines": [
+      { "text": "老实说 我十岁时 很迷你的\"氧气\"特辑", "confidence": 0.50, "x": 0.164, "y": 0.070 },
+      { "text": "- Honestly, l was like obsessed with your Oxygen special when lwas ten", "confidence": 0.50, "x": 0.000, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "老实说 我十岁时 很迷你的\"氧气\"特辑", "confidence": 0.50, "x": 0.164, "y": 0.070 },
+      { "text": "- Honestly. l was like obsessed with your Oxygen special when I was ten", "confidence": 0.50, "x": 0.000, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "老实说 我十岁时 很迷你的\"氧气\"特辑", "confidence": 0.50, "x": 0.164, "y": 0.070 },
+      { "text": "- Honestly, l was like obsessed with your Oxygen special when I was ten", "confidence": 0.50, "x": 0.000, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "老实说 我十岁时 很迷你的\"氧气\"特辑", "confidence": 0.50, "x": 0.164, "y": 0.070 },
+      { "text": "- Honestly, I was like obsessed with your Oxygen special when I was ten", "confidence": 0.50, "x": 0.000, "y": 0.581 }
+    ]},
+    { "lines": [
+      { "text": "老实说 我十岁时 很迷你的\"氧气\"特辑", "confidence": 0.50, "x": 0.164, "y": 0.093 },
+      { "text": "- Honestly, I was like obsessed with your Oxygen special when I was ten", "confidence": 0.50, "x": 0.000, "y": 0.581 }
+    ]}
+  ],
+
+  "expected": {
+    "sentenceCount": 7,
+    "entries": [
+      { "chinese": "谢谢夸奖", "english": "Oh, uh, yeah. Oh, thank you so much.", "firstFrame": 1, "lastFrame": 6 },
+      { "chinese": "你是个很棒的写手", "english": "You're an excellent joke writer.", "firstFrame": 7, "lastFrame": 8 },
+      { "chinese": "这种天分很罕见", "english": "Believe me, those are hard to find.", "firstFrame": 10, "lastFrame": 11 },
+      { "chinese": "天啊…", "english": "Oh my God.", "firstFrame": 12, "lastFrame": 14 },
+      { "chinese": "能得到你的赞美 对我来说意义重大", "english": "Uh, wow, that means so much coming from you.", "firstFrame": 15, "lastFrame": 19 },
+      { "chinese": "谢谢你", "english": "Oh, Thanks.", "firstFrame": 20, "lastFrame": 22 },
+      { "chinese": "老实说 我十岁时 很迷你的\"氧气\"特辑", "english": "Honestly, I was like obsessed with your Oxygen special when I was ten", "firstFrame": 23, "lastFrame": 27 }
+    ]
+  }
+}
