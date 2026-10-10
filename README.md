@@ -36,14 +36,16 @@
 
 ## 它长什么样
 
-<!--
-截图待补。自己拍两张，存成 docs/images/ 下的 PNG，然后把下面这段注释去掉：
+<img src="docs/images/overlay.jpg" width="860" alt="看剧时右侧的悬浮字幕稿">
 
-![悬浮字幕稿](docs/images/overlay.png)
-![工作台](docs/images/workbench.png)
--->
+框住字幕那两行，悬浮窗就在旁边一句句往上滚，编号、中英对照。
 
-不用拍视频、不用给权限，就能看到界面长什么样：
+<img src="docs/images/workbench.png" width="820" alt="字幕工作台">
+
+工作台：左边是观看会话，右边是中英对照字幕稿，可以直接导出 Markdown / 纯文本，
+也可以给句子打星收藏。
+
+不用拍视频、不用给屏幕录制权限，也能看到界面长什么样：
 
 ```bash
 swift run EnglishApp --demo-overlay   # 悬浮窗摆满假数据，调排版用
@@ -101,6 +103,8 @@ open build/English.app
 ### 用法
 
 菜单栏出现一个 💬 图标：
+
+<img src="docs/images/menu.png" width="300" alt="菜单栏菜单展开的样子">
 
 | 菜单项 | 说明 |
 |---|---|
