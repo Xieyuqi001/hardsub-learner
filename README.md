@@ -193,6 +193,26 @@ swift run capture-check 353 184 342 202 6 --dump /tmp/frames
 ./build/English.app/Contents/MacOS/English --export all md
 ```
 
+### 调试开关
+
+| 开关 | 用途 |
+|---|---|
+| `--demo-overlay` | 不开视频、不要权限，悬浮窗摆满假数据调排版 |
+| `--workbench` | 启动就打开工作台 |
+| `--auto-start x y w h` | 跳过框选直接开采集 |
+| `--auto-stop <秒>` | 配合 `--auto-start`：N 秒后自动停止并退出。走的是和 ⌘S **同一条**取消路径 |
+| `--selftest-capture` | 自排除对照实验 |
+| `--selftest-store` | 改名 / 收藏 / 导出的落盘自检（临时目录，不碰真实数据） |
+| `--export <id\|all> [md\|txt]` | 命令行导出 |
+
+> `--auto-stop` 是补出来的。在此之前「停止采集」这条路**没有任何无头跑法**——只能手点菜单，
+> 于是它坏掉了也没人测得到：点停止会报「采集出错：CancellationError()」，
+> 而且收尾整段被跳过，最后那句没定稿的字幕直接丢。现在一行命令就能跑到那条路径：
+
+```bash
+./build/English.app/Contents/MacOS/English --auto-start 0 800 1470 108 --auto-stop 8
+```
+
 ### 为什么要自己写断言器，不用 `swift test`
 
 **只有 CommandLineTools、没有完整 Xcode 时，`swift test` 会编译通过、退出码 0、

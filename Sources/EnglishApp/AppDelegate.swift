@@ -42,6 +42,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         coordinator.onStatus = { [weak self] text in
             guard let self else { return }
+            // 无头诊断模式下也打到 stdout，否则状态只在悬浮窗上，脚本看不见
+            if Self.autoStop != nil { print("▸ 状态：\(text)") }
             self.statusText = text
             self.overlay.setStatus(text)
             self.rebuildMenu()
@@ -55,6 +57,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let sel = Self.autoStart {
             selection = sel
             startCapture()
+        }
+
+        if let secs = Self.autoStop {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(secs))
+                print("▸ auto-stop：到点，调 stopCapture()（与 ⌘S 同一个方法）")
+                self.stopCapture()
+                // 等采集任务收尾完再退，否则会把收尾截断、看不到最终状态
+                for _ in 0..<50 where self.coordinator.isRunning {
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
+                print("▸ auto-stop：收尾完成，isRunning=\(self.coordinator.isRunning)")
+                NSApp.terminate(nil)
+            }
         }
 
         if CommandLine.arguments.contains("--workbench") { openWorkbench() }
@@ -270,6 +286,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               let h = Double(CommandLine.arguments[i + 4]) else { return nil }
         return ScreenSelection(rect: CGRect(x: x, y: y, width: w, height: h),
                                displayID: CGMainDisplayID())
+    }
+
+    /// `English --auto-stop <秒>`：配合 `--auto-start` 用，N 秒后自动停止采集并退出。
+    ///
+    /// 调的是**和 ⌘S 完全同一个** `stopCapture()`，所以走的是同一条取消路径。
+    /// 存在的理由：停止采集这条路以前没有任何无头跑法，只能手点菜单，
+    /// 于是「点停止就报采集出错、还丢最后一句」这个 bug 一直没人测到。
+    static var autoStop: Double? {
+        guard let i = CommandLine.arguments.firstIndex(of: "--auto-stop"),
+              CommandLine.arguments.count > i + 1 else { return nil }
+        return Double(CommandLine.arguments[i + 1])
     }
 
     private func runOverlayDemo() {

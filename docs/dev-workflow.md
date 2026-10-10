@@ -127,6 +127,30 @@ diff -q Resources/Workbench/app.js build/English.app/Contents/Resources/Workbenc
 >
 > 想知道夹具到底走没走到某条路径，别推理，**插探针数一遍**。
 
+> ⚠️ **「没有无头跑法」的路径 = 坏了也没人知道。**
+> 实测（2026-10-10）：`CaptureCoordinator` 里「停止采集」那条路以前只能手点菜单才能走到，
+> 于是它从写出来那天就是坏的，而且**一直没人发现**：
+>
+> - 循环里唯一的取消检查点是 `waitForNextPoll()` 的 `Task.sleep`，
+>   `capture()` 和 OCR 都不查取消 → 点停止时取消**必然**从那里抛出来；
+> - 那个 `CancellationError` 逃到最外层 `catch`，被报成「采集出错」；
+> - 更糟的是收尾整段（`assembler.flush()`）被一起跳过 → **最后那句没定稿的字幕直接丢**。
+>
+> 因为 `while !Task.isCancelled` 那条正常出口几乎走不到，`flush()` 事实上是死代码。
+> 连点 5 次停止，5 次都报错、5 次都丢最后一句。
+>
+> 修法：取消不当错误（`if !Task.isCancelled { failure = error }`），
+> 且**收尾在正常停止和真出错两条路上都要跑**。
+>
+> 为了让这条路以后测得到，加了 `--auto-stop <秒>`（调的是和 ⌘S 同一个 `stopCapture()`）：
+>
+> ```bash
+> ./build/English.app/Contents/MacOS/English --auto-start 0 800 1470 108 --auto-stop 8
+> ```
+>
+> 判断收尾有没有跑，别只看状态栏文案——**看 `entries.jsonl`**：
+> 停之前屏幕上定格的那句应该在最后一条里。文案可以骗人，落盘不会。
+
 ---
 
 ## 五、认领示例（阶段 1：EnglishCore）
