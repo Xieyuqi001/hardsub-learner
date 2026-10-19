@@ -112,6 +112,9 @@ open build/English.app
 | 开始采集 / 停止采集 `⌘S` | 开始后悬浮窗冒出来，字幕一句句往上滚 |
 | 显示/隐藏悬浮窗 `⌘O` | |
 | 悬浮窗点击穿透 | 挡住画面时打开，鼠标事件直接穿过去 |
+| 遮挡字幕 `⌘B` | 在屏幕上糊一块**纯黑**盖住字幕。没画过时点它会先让你拖一块出来；再点一下取消 |
+| 调整遮挡块… | 黑块浮出黄边和四角把手：拖块体挪位置、拖角缩放。平时完全鼠标穿透，不影响点播放器 |
+| 重新画遮挡块… | 换片源了、块画歪了，重画一块 |
 | 打开工作台… `⌘W` | 会话列表 → 字幕稿 → 导出中英对照文档。可改会话名、可给句子打星收藏 |
 | 打开会话文件夹 | 数据就在这儿 |
 
@@ -167,7 +170,7 @@ tccutil reset ScreenCapture dev.hardsub.english   # 换成你自己的 BUNDLE_ID
 **改算法必跑 1；改落盘（改名/收藏/导出）必跑 2；改工作台前端必跑 3、4。**
 
 ```bash
-# 1. 纯逻辑回归 —— 不需要屏幕、不需要视频，129 项检查
+# 1. 纯逻辑回归 —— 不需要屏幕、不需要视频，180 项检查
 swift run core-check
 
 # 2. 落盘自检 —— 改名 / 收藏 / 导出，全程在临时目录，不碰真实数据，38 项断言
@@ -189,7 +192,10 @@ swift run capture-check 353 184 342 202 6 --dump /tmp/frames
 # 6. 自排除对照实验 —— 确认悬浮窗不会被自己 OCR 一遍
 ./build/English.app/Contents/MacOS/English --selftest-capture
 
-# 7. 不开界面导出
+# 7. 遮挡块四步对照 —— 黑块只挡眼睛、不挡抓屏
+./build/English.app/Contents/MacOS/English --selftest-block
+
+# 8. 不开界面导出
 ./build/English.app/Contents/MacOS/English --export all md
 ```
 
@@ -202,6 +208,7 @@ swift run capture-check 353 184 342 202 6 --dump /tmp/frames
 | `--auto-start x y w h` | 跳过框选直接开采集 |
 | `--auto-stop <秒>` | 配合 `--auto-start`：N 秒后自动停止并退出。走的是和 ⌘S **同一条**取消路径 |
 | `--selftest-capture` | 自排除对照实验 |
+| `--selftest-block` | 遮挡块四步对照实验（挡住眼睛 / 放跑抓屏） |
 | `--selftest-store` | 改名 / 收藏 / 导出的落盘自检（临时目录，不碰真实数据） |
 | `--export <id\|all> [md\|txt]` | 命令行导出 |
 
@@ -247,10 +254,19 @@ swift run capture-check 353 184 342 202 6 --dump /tmp/frames
 另外，转场或画面上的其他文字（尤其是播放器的进度条/时间码）如果落在框里，
 会变成噪声条目，需要在工作台里手动删掉。
 
+**遮挡块压不住层级更高的窗口。** 它是个 `.floating` 层窗口——和悬浮窗同一层，
+足以盖住视频画面，但别的 App 那种「永远置顶」的浮标（实测遇到过浏览器/客户端的
+拖拽上传提示）会压在它上面。这类窗口不是我们要挡的东西，真碰上了就关掉那个功能。
+
 ### v1 没做
 
 翻译兜底（实测片源都是中英双行，用不上）· 播放器控制 / 单句循环 ·
-遮挡画面中文字幕 · 字幕区域自动定位 · 云同步 / 账号 · 逐词查词 / 生词本
+字幕区域自动定位 · 云同步 / 账号 · 逐词查词 / 生词本
+
+**遮挡字幕已做**（v1.2，见 [`docs/plan-occlusion-v1.md`](docs/plan-occlusion-v1.md)）：
+菜单画一块黑盖住烧在画面里的字幕，可开关、可拖动缩放、跨启动记住位置。关键是
+**只挡眼睛不挡工具**——抓屏照样读得到底下的字幕，字幕稿照常积累。
+仍未做：多个遮挡块、颜色/透明度可调、「只挡中文行」这类自动判断。
 
 **节选收藏已做**（v1.1，见 [`docs/plan-workbench-v1.1.md`](docs/plan-workbench-v1.1.md)）：
 句子打星 → 跨会话聚合 → 导出成一篇按来源分组的背诵材料。
@@ -282,6 +298,7 @@ Sources/
     Favorites.swift       收藏模型 + favorites.json 编解码（纯逻辑，不读时钟）
     FramePairer.swift     语种分类 + 帧内中英配对
     SubtitleAssembler.swift  状态机 + 变体池 + 择优成句
+    OcclusionGeometry.swift  遮挡块的平移 / 四角缩放 / 越界钳制（纯算术，离线可回归）
   EnglishCapture/       采集层。依赖系统 API，不可离线测
     ScreenCapturer.swift  SCK 抓屏 + 自排除 + Retina 缩放系数
     OCREngine.swift       Vision 封装
@@ -291,6 +308,8 @@ Sources/
     AppDelegate.swift     菜单栏 + 各调试开关
     CaptureCoordinator.swift  串起 采集→组装→落盘→UI
     OverlayPanel.swift    悬浮字幕稿
+    OcclusionPanel.swift  遮挡黑块（平时鼠标穿透，调整模式下可拖动缩放）
+    BlockSelfTest.swift   遮挡块四步对照实验（--selftest-block）
     WorkbenchWindow.swift WKWebView 工作台 + JS 桥接
     Exporter.swift        中英对照文档生成（会话全量 / 跨会话收藏）
     SessionStore.swift    JSONL 落盘 + 改名 + 收藏读写

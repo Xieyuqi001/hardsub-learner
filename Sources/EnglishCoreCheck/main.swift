@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import EnglishCore
 
@@ -409,5 +410,134 @@ h.equal(FavoritesDoc.decode(try? noChinese.encoded()).favorite(at: 20)?.chinese,
 
 h.equal(FavoritesDoc(favorites: []).isEmpty, true, "空文档 isEmpty 为真")
 h.check(!doc.isEmpty, "【反向对照】有内容时 isEmpty 为假")
+
+// ═══════════════════════════════════════════════════════════════════════════
+h.group("遮挡块几何 · 平移")
+// ═══════════════════════════════════════════════════════════════════════════
+// 坐标系是 AppKit 惯例：**左下原点**。所以"往下"是 y 减小、"往上"是 y 增大。
+
+let screen = CGRect(x: 0, y: 0, width: 1000, height: 800)
+let block = CGRect(x: 300, y: 200, width: 400, height: 60)
+
+let shifted = OcclusionGeometry.move(block, by: CGSize(width: 50, height: -30), within: screen)
+h.equal(shifted, CGRect(x: 350, y: 170, width: 400, height: 60), "平移量正确")
+h.equal(shifted.size, block.size, "不变量：平移不改变尺寸")
+
+h.equal(OcclusionGeometry.move(CGRect(x: 0, y: 300, width: 400, height: 60),
+                               by: CGSize(width: -80, height: 0), within: screen).minX,
+        0, "贴左边界再往左拖，停住不动")
+h.equal(OcclusionGeometry.move(block, by: CGSize(width: -80, height: 0), within: screen).minX,
+        220, "【反向对照】不贴边时同样拖 −80，确实动了")
+
+let pinnedRight = OcclusionGeometry.move(block, by: CGSize(width: 9999, height: 0), within: screen)
+h.equal(pinnedRight.maxX, 1000, "往右拖到底，右边缘停在屏幕右边缘")
+h.equal(pinnedRight.width, 400, "【不变量】撞墙也不被挤扁")
+
+let pinnedTopLeft = OcclusionGeometry.move(block, by: CGSize(width: -9999, height: 9999), within: screen)
+h.equal(pinnedTopLeft.minX, 0, "往左拖到底，左边缘停在 0")
+h.equal(pinnedTopLeft.maxY, 800, "往**上**拖到底（左下原点，y 增大）：上边缘停在 800")
+
+h.equal(OcclusionGeometry.move(block, by: .zero, within: screen), block, "拖 0：原地不动")
+h.equal(OcclusionGeometry.move(shifted, by: .zero, within: screen), shifted,
+        "【不变量】已经贴边的块，再「拖 0」也不会被挪走")
+
+// ═══════════════════════════════════════════════════════════════════════════
+h.group("遮挡块几何 · 缩放：只有该动的两条边会动")
+// ═══════════════════════════════════════════════════════════════════════════
+
+// 四个角各拖到不同的点，逐条验：对角钉死 + 该动的边跟到鼠标。
+// 只验其中一个角是不够的——左右两边的符号是各写一遍的，写反了另一个角照样全绿。
+let resizeTargets: [(ResizeHandle, CGPoint)] = [
+    (.topLeft,     CGPoint(x: 250, y: 300)),
+    (.topRight,    CGPoint(x: 750, y: 300)),
+    (.bottomLeft,  CGPoint(x: 250, y: 150)),
+    (.bottomRight, CGPoint(x: 750, y: 150)),
+]
+for (handle, point) in resizeTargets {
+    let r = OcclusionGeometry.resize(block, handle: handle, to: point, within: screen)
+    let fixedX = handle.movesMinX ? r.maxX : r.minX
+    let fixedY = handle.movesMinY ? r.maxY : r.minY
+    let movedX = handle.movesMinX ? r.minX : r.maxX
+    let movedY = handle.movesMinY ? r.minY : r.maxY
+
+    h.equal(fixedX, handle.movesMinX ? block.maxX : block.minX, "拖 \(handle)：对角的 X 钉死不动")
+    h.equal(fixedY, handle.movesMinY ? block.maxY : block.minY, "拖 \(handle)：对角的 Y 钉死不动")
+    h.equal(movedX, point.x, "拖 \(handle)：该动的 X 边跟到鼠标")
+    h.equal(movedY, point.y, "拖 \(handle)：该动的 Y 边跟到鼠标")
+}
+
+// 单独钉一次坐标系：左下原点下，视觉"左上角"动的是 minX 和 **maxY**。
+// 这一条写错了就是"拖上面那个角、下面那条边跟着动"，而四个角的循环断言**照样全绿**。
+let tl = OcclusionGeometry.resize(block, handle: .topLeft,
+                                  to: CGPoint(x: 200, y: 500), within: screen)
+h.equal(tl.minY, block.minY, "拖左上角：minY（下边）纹丝不动")
+h.equal(tl.maxY, 500, "拖左上角：maxY（上边）跟到鼠标——左下原点，别把两者写反")
+
+// ═══════════════════════════════════════════════════════════════════════════
+h.group("遮挡块几何 · 拖过对边不许翻转")
+// ═══════════════════════════════════════════════════════════════════════════
+
+let flipped = OcclusionGeometry.resize(block, handle: .bottomLeft,
+                                       to: CGPoint(x: 9999, y: 100), within: screen)
+h.equal(flipped.width, OcclusionGeometry.minSize.width, "拖过对边：宽度停在最小尺寸")
+h.equal(flipped.maxX, block.maxX, "拖过对边：右边仍然钉死（翻转的话它会跑到左边去）")
+h.check(flipped.width > 0, "宽度是正的")
+
+// 【反向对照】不做护栏的天真算法，同一次拖拽会算出负宽。
+// 这条证明上面那两条断言确实咬得住这个 bug，而不是恒真。
+let naiveWidth = block.maxX - 9999
+h.check(naiveWidth < 0, "【反向对照】不做护栏时同一次拖拽算出负宽 \(Int(naiveWidth))，画面表现为「块跳到另一边」")
+
+let alreadyMin = OcclusionGeometry.resize(flipped, handle: .bottomLeft,
+                                          to: CGPoint(x: 9999, y: 100), within: screen)
+h.equal(alreadyMin, flipped, "已到最小尺寸再往里拖：结果不变（幂等）")
+
+let shrunkHeight = OcclusionGeometry.resize(block, handle: .topLeft,
+                                            to: CGPoint(x: 500, y: -9999), within: screen)
+h.equal(shrunkHeight.height, OcclusionGeometry.minSize.height, "纵向同样停在最小高度")
+h.equal(shrunkHeight.minY, block.minY, "纵向拖过对边：下边仍然钉死")
+
+// ═══════════════════════════════════════════════════════════════════════════
+h.group("遮挡块几何 · 缩放出界")
+// ═══════════════════════════════════════════════════════════════════════════
+
+let out = OcclusionGeometry.resize(block, handle: .bottomRight,
+                                   to: CGPoint(x: 5000, y: -5000), within: screen)
+h.equal(out.maxX, screen.maxX, "往屏幕右外拖：右边缘停在屏幕内")
+h.equal(out.minY, screen.minY, "往屏幕下外拖：下边缘停在屏幕内")
+h.equal(out.minX, block.minX, "出界时另一条边仍钉死（X）")
+h.equal(out.maxY, block.maxY, "出界时另一条边仍钉死（Y）")
+
+// ═══════════════════════════════════════════════════════════════════════════
+h.group("遮挡块几何 · 画出来的块值得用吗")
+// ═══════════════════════════════════════════════════════════════════════════
+
+h.check(OcclusionGeometry.isUsable(block), "400×60 可用")
+h.check(OcclusionGeometry.isUsable(CGRect(x: 0, y: 0, width: 40, height: 20)),
+        "正好 40×20 边界值算可用")
+h.check(!OcclusionGeometry.isUsable(CGRect(x: 0, y: 0, width: 39, height: 60)), "宽差 1 点：不可用")
+h.check(!OcclusionGeometry.isUsable(CGRect(x: 0, y: 0, width: 400, height: 19)), "高差 1 点：不可用")
+// 【反向对照】翻转的矩形（数据坏了 / 理论上的拖过头）必须被判为不可用。
+// 这两条先钉住 CoreGraphics 那个坑本身，否则下面那条断言会「看起来没道理地」红：
+let flippedRect = CGRect(x: 0, y: 0, width: -400, height: 60)
+h.equal(flippedRect.width, 400, "坑：负宽矩形的 .width 报的是**绝对值** 400")
+h.equal(flippedRect.size.width, -400, "只有 .size.width 看得到负号，负号藏在 size 里")
+h.check(!OcclusionGeometry.isUsable(flippedRect),
+        "【反向对照】负宽不可用——判据必须是 .size.width，用 .width 会放行")
+
+// ═══════════════════════════════════════════════════════════════════════════
+h.group("遮挡块几何 · 拉回屏幕（外接屏拔了）")
+// ═══════════════════════════════════════════════════════════════════════════
+
+h.equal(OcclusionGeometry.fit(CGRect(x: -50, y: -50, width: 400, height: 60), into: screen),
+        CGRect(x: 0, y: 0, width: 400, height: 60), "落在屏幕左下的块被按原尺寸拉回来")
+h.equal(OcclusionGeometry.fit(block, into: screen), block, "已经在屏幕内：原样不动，一个点都不挪")
+h.equal(OcclusionGeometry.fit(CGRect(x: 2000, y: 300, width: 400, height: 60), into: screen),
+        CGRect(x: 600, y: 300, width: 400, height: 60),
+        "原本在第二块屏上的块，被拉回主屏右边缘贴住")
+h.check(OcclusionGeometry.fit(CGRect(x: 0, y: 0, width: 2000, height: 60), into: screen) == nil,
+        "比屏幕还宽的块：返回 nil，调用方当作「没有遮挡块」")
+h.check(OcclusionGeometry.fit(CGRect(x: 0, y: 0, width: 400, height: 900), into: screen) == nil,
+        "【反向对照】比屏幕还高的块同样返回 nil")
 
 exit(h.finish())

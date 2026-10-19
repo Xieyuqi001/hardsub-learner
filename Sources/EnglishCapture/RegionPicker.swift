@@ -21,8 +21,13 @@ public final class RegionPicker {
 
     /// 弹出遮罩开始框选。用户拖完（或按 Esc 取消）后回调。
     /// 回调一定在主线程上。
-    public func begin(completion: @escaping (ScreenSelection?) -> Void) {
+    ///
+    /// `hint` 是顶部那行提示语。遮挡块也走这套交互（画一块黑），
+    /// 但"框出字幕区域"这句话对它不成立，所以要能换。
+    public func begin(hint: String = "拖拽框出字幕区域",
+                      completion: @escaping (ScreenSelection?) -> Void) {
         self.completion = completion
+        self.hint = hint
         buildWindows()
         guard !windows.isEmpty else {
             finish(nil)
@@ -36,6 +41,7 @@ public final class RegionPicker {
 
     private var windows: [NSWindow] = []
     private var completion: ((ScreenSelection?) -> Void)?
+    private var hint = "拖拽框出字幕区域"
 
     private func buildWindows() {
         for screen in NSScreen.screens {
@@ -57,6 +63,7 @@ public final class RegionPicker {
             let screenDisplayID = screen.displayID
 
             let view = SelectionView(frame: CGRect(origin: .zero, size: screen.frame.size))
+            view.hint = hint
             view.onComplete = { [weak self] localRect in
                 guard let self else { return }
                 guard let rect = localRect, let screenDisplayID else {
@@ -93,6 +100,8 @@ public final class RegionPicker {
 private final class SelectionView: NSView {
     /// 传 nil 表示取消
     var onComplete: ((CGRect?) -> Void)?
+    /// 拖出选区前显示的那行提示
+    var hint = "拖拽框出字幕区域"
 
     private var startPoint: NSPoint?
     private var currentPoint: NSPoint?
@@ -137,7 +146,7 @@ private final class SelectionView: NSView {
 
     private func drawHint() {
         let text = selectionRect == nil
-            ? "拖拽框出字幕区域　　按 Esc 取消"
+            ? "\(hint)　　按 Esc 取消"
             : "松手即确认　　按 Esc 取消"
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 15, weight: .medium),

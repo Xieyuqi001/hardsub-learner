@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let coordinator = CaptureCoordinator()
     private let picker = RegionPicker()
     private let overlay = OverlayPanel()
+    private let occlusion = OcclusionPanel()
     private var workbench: WorkbenchWindow?
 
     private var statusItem: NSStatusItem!
@@ -17,6 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusMenuItem: NSMenuItem?
 
     private static let selectionKey = "SavedSelection"
+    private static let occlusionRectKey = "OcclusionRect"
+    private static let occlusionOnKey = "OcclusionOn"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 纯命令行的落盘自检：在建菜单栏图标之前就退掉，什么都不碰
@@ -49,7 +52,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.rebuildMenu()
         }
 
+        // 黑块挪过位置就存盘；调整模式结束（Esc / 双击 / 菜单）也存一次——
+        // 拖动过程中会连续触发，但那只是一次 UserDefaults 写入，不值得做节流
+        occlusion.onFrameChanged = { [weak self] rect in
+            self?.saveOcclusionRect(rect)
+        }
+        occlusion.onAdjustingFinished = { [weak self] in
+            guard let self else { return }
+            self.occlusion.setAdjusting(false)
+            self.saveOcclusionRect(self.occlusion.frame)
+            self.statusText = "遮挡块已锁定"
+            self.rebuildMenu()
+        }
+
         loadSavedSelection()
+        loadSavedOcclusion()
         rebuildMenu()
 
         if Self.demoOverlay { runOverlayDemo() }
@@ -88,6 +105,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let code = await SelfTest.run(overlay: overlay)
                 NSApp.terminate(nil)          // 退出码这里给不了，看 stdout
                 _ = code
+            }
+        }
+
+        if Self.selfTestBlock {
+            Task { @MainActor in
+                let code = await BlockSelfTest.run(overlay: overlay, occlusion: occlusion)
+                print("▸ 退出码：\(code)（0 = 通过）")
+                NSApp.terminate(nil)
             }
         }
     }
@@ -155,6 +180,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(through)
 
         menu.addItem(.separator())
+
+        let occlude = item("遮挡字幕", #selector(toggleOcclusion), "b")
+        occlude.state = occlusion.isVisible ? .on : .off
+        menu.addItem(occlude)
+
+        let adjust = item(occlusion.isAdjusting ? "完成调整遮挡块" : "调整遮挡块…",
+                          #selector(toggleAdjustOcclusion))
+        adjust.isEnabled = occlusion.isPlaced && occlusion.isVisible
+        menu.addItem(adjust)
+
+        // 重画独立成一项：块画歪了或换了片源，重画比拖着挪快。
+        // 没画过时置灰——那时候点「遮挡字幕」本身就是进入绘制，不必两个入口
+        let redraw = item("重新画遮挡块…", #selector(drawOcclusion))
+        redraw.isEnabled = occlusion.isPlaced
+        menu.addItem(redraw)
+
+        menu.addItem(.separator())
         menu.addItem(item("打开工作台…", #selector(openWorkbench), "w"))
         menu.addItem(item("打开会话文件夹", #selector(openSessionsFolder)))
         menu.addItem(item("退出", #selector(NSApplication.terminate(_:)), "q"))
@@ -198,6 +240,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             rebuildMenu()
             return
         }
+        // 调整模式会吃掉鼠标事件（点播放器没反应）。开始看剧之前必须让它退出去，
+        // 否则用户会以为播放器坏了——而屏幕上只有一圈黄边在提示
+        occlusion.setAdjusting(false)
         lastEntry = nil
         overlay.clear()
         overlay.show()
@@ -206,6 +251,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func stopCapture() {
+        occlusion.setAdjusting(false)
         coordinator.stop()
     }
 
@@ -217,6 +263,87 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleClickThrough() {
         overlay.setClickThrough(!overlay.isClickThrough)
         rebuildMenu()
+    }
+
+    // MARK: - 遮挡字幕
+
+    /// 一键开关。**没画过的时候这一下是"去画"**——这是唯一的绘制入口，
+    /// 因为用户第一次点它的时候，能做的只能是画一块出来。
+    @objc private func toggleOcclusion() {
+        if occlusion.isVisible {
+            occlusion.hide()
+            saveOcclusionOn(false)
+            statusText = "遮挡已取消"
+        } else if occlusion.isPlaced {
+            occlusion.show()
+            saveOcclusionOn(true)
+            statusText = "遮挡已打开"
+        } else {
+            statusText = "拖出一块要遮挡的字幕范围"
+            drawOcclusion()
+            return                      // 回调里会 rebuildMenu
+        }
+        rebuildMenu()
+    }
+
+    @objc private func drawOcclusion() {
+        guard !picker.isActive else { return }
+        occlusion.setAdjusting(false)   // 描边和把手别混进遮罩里
+
+        // 和「框选字幕区域」共用同一套交互：全屏压暗 + 拖拽 + Esc 取消
+        picker.begin(hint: "拖拽画出要遮挡的字幕范围") { [weak self] result in
+            guard let self else { return }
+            guard let result, let rect = Self.appKitRect(from: result),
+                  OcclusionGeometry.isUsable(rect) else {
+                self.statusText = "已取消画遮挡块"
+                self.rebuildMenu()
+                return
+            }
+            self.occlusion.setFrame(rect)
+            self.occlusion.show()
+            self.saveOcclusionOn(true)
+            self.statusText = "遮挡块已就位，可点「调整遮挡块…」挪位置"
+            self.rebuildMenu()
+        }
+    }
+
+    @objc private func toggleAdjustOcclusion() {
+        occlusion.setAdjusting(!occlusion.isAdjusting)
+        statusText = occlusion.isAdjusting
+            ? "拖动黑块挪位置，拖四个角缩放；按 Esc 或双击完成"
+            : "遮挡块已锁定"
+        rebuildMenu()
+    }
+
+    /// 框选结果是 SCK 坐标（**相对显示器、左上原点**），黑块窗口要的是
+    /// AppKit 全局坐标（**左下原点**）。全项目第四处坐标系换算，别省这一步。
+    private static func appKitRect(from selection: ScreenSelection) -> NSRect? {
+        let screen = NSScreen.screens.first { $0.displayID == selection.displayID }
+            ?? NSScreen.main
+        guard let screen else { return nil }
+        let f = screen.frame
+        let r = selection.rect
+        return NSRect(x: f.minX + r.minX, y: f.maxY - r.maxY,
+                      width: r.width, height: r.height)
+    }
+
+    private func saveOcclusionRect(_ rect: NSRect) {
+        UserDefaults.standard.set(NSStringFromRect(rect), forKey: Self.occlusionRectKey)
+    }
+
+    private func saveOcclusionOn(_ on: Bool) {
+        UserDefaults.standard.set(on, forKey: Self.occlusionOnKey)
+    }
+
+    private func loadSavedOcclusion() {
+        guard let s = UserDefaults.standard.string(forKey: Self.occlusionRectKey) else { return }
+        occlusion.setFrame(NSRectFromString(s))
+        // setFrame 装不下就什么都不做；这时候 isPlaced 仍是 false，
+        // 菜单会把「遮挡字幕」当成"还没画过"，引导用户重画一块而不是静默失灵
+        guard occlusion.isPlaced else { return }
+        if UserDefaults.standard.bool(forKey: Self.occlusionOnKey) {
+            occlusion.show()
+        }
     }
 
     @objc private func openSessionsFolder() {
@@ -274,6 +401,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// `English --selftest-store`：验改名与收藏的落盘（见 StoreSelfTest.swift）
     static let selfTestStore = CommandLine.arguments.contains("--selftest-store")
+
+    /// `English --selftest-block`：验遮挡黑块只挡眼睛、不挡抓屏（见 BlockSelfTest.swift）
+    static let selfTestBlock = CommandLine.arguments.contains("--selftest-block")
 
     /// `English --auto-start x y w h`：跳过框选，直接拿这个区域开始采集。
     /// 诊断用——不用手点菜单就能跑通「采集→成句→落盘」整条链路。

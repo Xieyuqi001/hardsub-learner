@@ -85,6 +85,12 @@ swift run capture-check [x y 宽 高 秒数] [--dump 目录]
 # 自排除对照实验（验证悬浮窗不会被自己 OCR 进去）
 build/English.app/Contents/MacOS/English --selftest-capture
 
+# 遮挡块四步对照（验证黑块只挡眼睛、不挡抓屏）
+build/English.app/Contents/MacOS/English --selftest-block
+
+# 上面那个出问题时，把每步抓到的图存下来看
+BLOCK_DUMP=/tmp/blockdump build/English.app/Contents/MacOS/English --selftest-block
+
 # 打包签名（setup_signing.sh 只需跑一次）
 Scripts/setup_signing.sh && Scripts/package_app.sh
 
@@ -126,6 +132,17 @@ diff -q Resources/Workbench/app.js build/English.app/Contents/Resources/Workbenc
 > 只验"别切开"的话，把逻辑改成"永不切句"也能全绿）。
 >
 > 想知道夹具到底走没走到某条路径，别推理，**插探针数一遍**。
+
+> ⚠️ **一个「没通过」的数字，说不出它是怎么没通过的。**
+> 实测（2026-10-19）：遮挡块自检里 ③ 的平均亮度是 6.6 而不是预期的 0。
+> 光看这一个数，「黑块没画上」「黑块漏了一条边」「别的东西压在黑块上」三种情况
+> 全都对得上，而修法完全不同。
+>
+> 补一句「亮像素分布在归一化坐标的哪个区域、占多少面积」再跑，一眼看出是
+> **别的 App 的置顶浮标**压在黑块上——不是我们的 bug，我们连代码都不用改。
+>
+> 通用做法：**失败判据旁边同时输出形状/分布，别只输出一个标量。**
+> 看到异常先问「能不能把它 dump 出来看一眼」，别顺着数字猜。
 
 > ⚠️ **「没有无头跑法」的路径 = 坏了也没人知道。**
 > 实测（2026-10-10）：`CaptureCoordinator` 里「停止采集」那条路以前只能手点菜单才能走到，
